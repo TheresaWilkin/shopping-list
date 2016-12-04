@@ -21,12 +21,12 @@ var Storage = {
   delete: function(id) {
   	var index = this.findIndex(id);
   	var item = this.items.splice(index, 1);
-  	return item;
+  	return item[0];
   },
   update: function(id, item) {
   	var index = this.findIndex(id);
-  	this.items[index] = item;
-  	return item;
+  	this.items[index].name = item.name;
+  	return this.items[index];
   }
 };
 
@@ -54,6 +54,9 @@ app.post('/items', jsonParser, function(request, response) {
 	if (!('name' in request.body)) {
         return response.sendStatus(400);
     }
+	if (('id' in request.body) && storage.findIndex(request.body.id) !== undefined) {
+		return response.status(404).json({message: "Item already exists"});
+	}
 	var item = storage.add(request.body.name);
 	response.status(201).json(item);
 })
@@ -68,18 +71,21 @@ app.delete('/items/:id', jsonParser, function(request, response) {
 
 app.put('/items/:id', jsonParser, function(request, response) {
 	if (!request.body.name || !request.body.id) {
-		return response.status(400).json({message:"Item not found"});
+		return response.status(404).json({message:"Item not found"});
 	}
 	if (request.body.id != request.params.id) {
 		return response.status(400).json({message: "ID doesn't match"});
 	}
 	if (storage.findIndex(request.params.id) === undefined) {
 		var item = storage.add(request.body.name);
-		response.status(201).json(item);
+		return response.status(201).json(item);
 	}
 	var item = storage.update(request.params.id, request.body);
 	response.status(200).json(item);
 })
 
 app.listen(process.env.PORT || 8080, process.env.IP);
+
+exports.app = app;
+exports.storage = storage;
 
